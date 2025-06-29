@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViewSessionDashboard Layout Wireframe</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            margin: 0;
+            overflow: hidden; /* Control scrolling explicitly on sub-elements */
+        }
+        /* Custom scrollbars */
+        .overflow-y-auto::-webkit-scrollbar,
+        .overflow-x-auto::-webkit-scrollbar {
+            width: 5px; /* Even thinner scrollbar */
+            height: 5px;
+        }
+        .overflow-y-auto::-webkit-scrollbar-track,
+        .overflow-x-auto::-webkit-scrollbar-track {
+            background: #334155; /* gray-700 */
+        }
+        .overflow-y-auto::-webkit-scrollbar-thumb,
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* gray-600 */
+            border-radius: 2.5px;
+            border: 1px solid #334155;
+        }
+
+        /* Sticky table column styles */
+        .sticky-col {
+            position: sticky;
+            z-index: 10; /* Ensure sticky columns are above scrolling content */
+            background-color: #374151; /* Match table header/body for seamless look */
+            border-right: 1px solid #4a5568; /* Visual separator */
+        }
+        /* Specific sticky column backgrounds when rows hover */
+        .table-fixed tbody tr:hover .sticky-col {
+            background-color: #4a5568; /* Darker gray on hover */
+        }
+
+        .sticky-left-0 { left: 0; }
+        .sticky-left-actions { left: 50px; /* Width of lap actions */ }
+        .sticky-left-lapinfo { left: 180px; /* Width of actions + lap header */ }
+
+        /* Column widths for sticky table */
+        .w-actions { width: 50px; min-width: 50px; } /* Edit/Delete buttons */
+        .w-lap-number { width: 70px; min-width: 70px; }
+        .w-lap-status { width: 60px; min-width: 60px; }
+        .w-start-time { width: 100px; min-width: 100px; }
+        .w-length { width: 60px; min-width: 60px; }
+        .w-param-col { width: 120px; min-width: 120px; } /* Default for parameter columns */
+
+        /* Collapsible content styles (purely visual in this wireframe) */
+        .collapsible-content {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            overflow: hidden;
+            max-height: 500px; /* Arbitrary large value when expanded */
+            opacity: 1;
+        }
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col bg-gray-900 text-gray-100">
+
+    <!-- Header Section: ViewSessionHeader (approx. 10% height) -->
+    <header class="flex items-center justify-between p-2 bg-gray-800 text-white border-b border-gray-700 shadow-lg flex-shrink-0 h-[10vh] rounded-b-sm">
+        <div class="flex-1 text-left px-1">
+            <h1 class="text-lg font-bold">Event Name: Grand Prix Miami</h1>
+            <p class="text-xs text-gray-400">Session Name: Qualifying - Session 2</p>
+        </div>
+        <div class="flex-1 text-center">
+            <p class="text-base font-semibold">Driver: Alice Driver</p>
+            <p class="text-xs text-gray-400">Total Laps: 25 | Track: Miami Autodrome</p>
+        </div>
+        <div class="flex-1 flex justify-end space-x-1 px-1">
+            <!-- Collapse/Expand Toggle Button for Header -->
+            <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="Toggle Header Details" style="font-size: 0.8em;">⚙️</button>
+            <!-- CRUD Modals Buttons (no background) -->
+            <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="Add New" style="font-size: 0.8em;">➕</button>
+            <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="Edit" style="font-size: 0.8em;">✏️</button>
+            <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="Delete" style="font-size: 0.8em;">🗑️</button>
+        </div>
+    </header>
+
+    <!-- Body Section (remaining height, two columns with draggable separator) -->
+    <div id="main-content-container" class="flex flex-1 overflow-hidden" style="height: calc(100vh - 10vh);">
+        <!-- Column 1 (Left): ViewSessionCarGallery & ViewSessionLapParam -->
+        <div id="column-1" class="flex flex-col p-2 bg-gray-900 border-r border-gray-700 overflow-y-auto relative" style="flex-basis: 25%;">
+            <!-- ViewSessionCarGallery (Sticky to top of Column 1) -->
+            <div class="sticky top-0 z-30 bg-gray-900 p-1 -mt-1 -mx-1 mb-2 rounded-md">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-base font-bold text-blue-400">Car Views & Slots</h2>
+                    <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="Toggle Car Gallery" style="font-size: 0.8em;">↕️</button>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-2 shadow-md border border-gray-700">
+                    <div class="flex items-center justify-center relative w-full h-40 bg-gray-700 rounded-md overflow-hidden">
+                        <button class="absolute left-1 text-gray-400 text-sm z-10 hover:text-gray-200" title="Previous" style="font-size: 0.8em;">⬅️</button>
+                        <img src="https://placehold.co/400x200/4B5563/D1D5DB?text=Car+Image" alt="Car View" class="w-full h-full object-cover rounded-md">
+                        <!-- Overlayed Dots with Tooltips -->
+                        <div class="absolute w-2 h-2 bg-gray-500 rounded-full border border-gray-300" style="left: 20%; top: 40%;" title="Engine Slot"></div>
+                        <div class="absolute w-2 h-2 bg-gray-500 rounded-full border border-gray-300" style="left: 70%; top: 60%;" title="Front Wing Slot"></div>
+                        <button class="absolute right-1 text-gray-400 text-sm z-10 hover:text-gray-200" title="Next" style="font-size: 0.8em;">➡️</button>
+                    </div>
+                    <p class="text-center text-xs text-gray-400 mt-2">Click dot for parameter details modal.</p>
+                </div>
+            </div>
+
+            <!-- ViewSessionLapParam -->
+            <div class="flex-1 bg-gray-800 rounded-lg p-2 shadow-md border border-gray-700 mt-2">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-base font-bold text-green-400">Parameters</h2>
+                    <div class="flex space-x-1">
+                        <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200 text-xs" title="Table View" style="font-size: 0.8em;">Table</button>
+                        <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200 text-xs" title="Card View" style="font-size: 0.8em;">Card</button>
+                    </div>
+                </div>
+                <input type="text" placeholder="Search parameters..." class="w-full p-1.5 mb-2 bg-gray-700 text-white border border-gray-600 rounded-md text-sm">
+
+                <div class="space-y-2 overflow-y-auto max-h-[calc(100%-6rem)]">
+                    <!-- Example Parameter Category Card (Collapsible) -->
+                    <div class="bg-gray-700 rounded-md p-2 border border-gray-600">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-sm font-semibold text-white">Engine Parameters</h3>
+                            <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Toggle Category" style="font-size: 0.8em;">🔼</button>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="grid grid-cols-2 gap-1 text-xs">
+                                <label class="text-gray-300">Ignition Timing:</label>
+                                <input type="text" value="18° BTDC" class="bg-gray-600 text-white border-gray-500 rounded-md p-0.5">
+                                <label class="text-gray-300">Fuel Mixture:</label>
+                                <input type="text" value="Rich" class="bg-gray-600 text-white border-gray-500 rounded-md p-0.5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-700 rounded-md p-2 border border-gray-600">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-sm font-semibold text-white">Suspension Settings</h3>
+                            <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Toggle Category" style="font-size: 0.8em;">🔼</button>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="grid grid-cols-2 gap-1 text-xs">
+                                <label class="text-gray-300">Front Camber:</label>
+                                <input type="text" value="-2.5°" class="bg-gray-600 text-white border-gray-500 rounded-md p-0.5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vertical Separator -->
+        <div id="column-separator" class="w-1 bg-gray-700 cursor-ew-resize flex-shrink-0"></div>
+
+        <!-- Column 2 (Right): ViewSessionLap & ViewSessionAnalytic -->
+        <div id="column-2" class="flex flex-col flex-1 p-2 bg-gray-900 overflow-y-auto">
+            <!-- ViewSessionLap (Max 50% height of column 2, sticky to top) -->
+            <div class="sticky top-0 z-20 bg-gray-900 p-1 -mt-1 -mx-1 mb-2 rounded-md" style="max-height: 50%;">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <!-- LapParamSelectorDropdown (checkbox list) -->
+                        <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200 mr-1" title="Select Lap Parameters" style="font-size: 0.8em;">📋</button>
+                        <h2 class="text-base font-bold text-purple-400">Session Laps</h2>
+                    </div>
+                    <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="Add New Lap" style="font-size: 0.8em;">➕</button>
+                    <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200 ml-1" title="Toggle Lap Details" style="font-size: 0.8em;">↕️</button>
+                </div>
+
+                <!-- ViewSessionLapCRUDTable -->
+                <div class="overflow-x-auto border border-gray-700 rounded-lg shadow-md bg-gray-800">
+                    <table class="w-full text-left table-fixed">
+                        <thead>
+                            <tr class="bg-gray-700">
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 sticky-col sticky-left-0 w-actions">Actions</th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 sticky-col sticky-left-actions w-lap-number">Lap #</th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 sticky-col sticky-left-lapinfo w-start-time">Start Time</th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-length">Length</th>
+                                <!-- Parameter Headers (will scroll) -->
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Ignition Timing
+                                </th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Fuel Mixture
+                                </th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Turbo Boost
+                                </th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Front Camber
+                                </th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Rear Toe
+                                </th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Tire Compound
+                                </th>
+                                <th class="py-1.5 px-1 text-xs font-medium text-gray-300 w-param-col">
+                                    <button class="text-gray-400 hover:text-gray-200 text-xxs mr-0.5" title="Close Column" style="font-size: 0.7em;">✖️</button>
+                                    Front Wing Downforce
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-gray-900">
+                            <!-- Dummy Lap Data Rows -->
+                            <tr class="border-b border-gray-700 last:border-b-0 hover:bg-gray-700">
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-0 w-actions">
+                                    <button class="text-gray-400 hover:text-gray-200 p-0.5 rounded-md" style="font-size: 0.8em;">✏️</button>
+                                    <button class="text-gray-400 hover:text-gray-200 p-0.5 rounded-md ml-0.5" style="font-size: 0.8em;">🗑️</button>
+                                </td>
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-actions w-lap-number">1</td>
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-lapinfo w-start-time">00:01:23</td>
+                                <td class="py-1 px-1 text-xs w-length">1:30.2</td>
+                                <td class="py-1 px-1 text-xs w-param-col">18°</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Rich</td>
+                                <td class="py-1 px-1 text-xs w-param-col">1.2 bar</td>
+                                <td class="py-1 px-1 text-xs w-param-col">-2.5°</td>
+                                <td class="py-1 px-1 text-xs w-param-col">0.2° out</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Soft</td>
+                                <td class="py-1 px-1 text-xs w-param-col">High</td>
+                            </tr>
+                             <tr class="border-b border-gray-700 last:border-b-0 hover:bg-gray-700">
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-0 w-actions">
+                                    <button class="text-gray-400 hover:text-gray-200 p-0.5 rounded-md" style="font-size: 0.8em;">✏️</button>
+                                    <button class="text-gray-400 hover:text-gray-200 p-0.5 rounded-md ml-0.5" style="font-size: 0.8em;">🗑️</button>
+                                </td>
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-actions w-lap-number">2</td>
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-lapinfo w-start-time">00:03:00</td>
+                                <td class="py-1 px-1 text-xs w-length">1:29.8</td>
+                                <td class="py-1 px-1 text-xs w-param-col">18.1°</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Optimal</td>
+                                <td class="py-1 px-1 text-xs w-param-col">1.25 bar</td>
+                                <td class="py-1 px-1 text-xs w-param-col">-2.4°</td>
+                                <td class="py-1 px-1 text-xs w-param-col">0.1° out</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Medium</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Medium</td>
+                            </tr>
+                            <tr class="border-b border-gray-700 last:border-b-0 hover:bg-gray-700">
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-0 w-actions">
+                                    <button class="text-gray-400 hover:text-gray-200 p-0.5 rounded-md" style="font-size: 0.8em;">✏️</button>
+                                    <button class="text-gray-400 hover:text-gray-200 p-0.5 rounded-md ml-0.5" style="font-size: 0.8em;">🗑️</button>
+                                </td>
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-actions w-lap-number">3</td>
+                                <td class="py-1 px-1 text-xs sticky-col sticky-left-lapinfo w-start-time">00:04:30</td>
+                                <td class="py-1 px-1 text-xs w-length">1:31.0</td>
+                                <td class="py-1 px-1 text-xs w-param-col">17.9°</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Lean</td>
+                                <td class="py-1 px-1 text-xs w-param-col">1.15 bar</td>
+                                <td class="py-1 px-1 text-xs w-param-col">-2.6°</td>
+                                <td class="py-1 px-1 text-xs w-param-col">0.3° in</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Hard</td>
+                                <td class="py-1 px-1 text-xs w-param-col">Low</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ViewSessionAnalytic Component -->
+            <div class="flex-1 bg-gray-800 rounded-lg p-2 shadow-md border border-gray-700 mt-2 overflow-y-auto">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <!-- ChartSelectorDropdown (checkbox list) -->
+                        <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200 mr-1" title="Select Charts" style="font-size: 0.8em;">📊</button>
+                        <h2 class="text-base font-bold text-orange-400">Analytics & Charts</h2>
+                    </div>
+                    <button class="p-1 rounded-md text-gray-400 hover:bg-gray-700 hover:text-gray-200" title="New Report" style="font-size: 0.8em;">✨ New</button>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- ViewSessionAnalyticCard Placeholder -->
+                    <div class="bg-gray-700 rounded-md p-2 border border-gray-600">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-sm font-semibold text-white">Chart Name & Description</h3>
+                            <div class="flex space-x-0.5">
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Edit Chart" style="font-size: 0.7em;">✏️</button>
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Delete Chart" style="font-size: 0.7em;">🗑️</button>
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Zoom Chart" style="font-size: 0.7em;">🔎</button>
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Close Chart" style="font-size: 0.7em;">✖️</button>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 h-32 flex items-center justify-center text-gray-400 rounded-md text-sm">
+                            Chart Visualization Placeholder
+                        </div>
+                    </div>
+                    <div class="bg-gray-700 rounded-md p-2 border border-gray-600">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-sm font-semibold text-white">Another Analytic Table</h3>
+                            <div class="flex space-x-0.5">
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Edit Table" style="font-size: 0.7em;">✏️</button>
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Delete Table" style="font-size: 0.7em;">🗑️</button>
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Zoom Table" style="font-size: 0.7em;">🔎</button>
+                                <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Close Table" style="font-size: 0.7em;">✖️</button>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 h-24 flex items-center justify-center text-gray-400 rounded-md text-sm">
+                            Analytic Table Placeholder
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const separator = document.getElementById('column-separator');
+            const column1 = document.getElementById('column-1');
+            const mainContainer = document.getElementById('main-content-container');
+
+            let isDragging = false;
+
+            separator.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                mainContainer.style.cursor = 'ew-resize';
+                mainContainer.style.userSelect = 'none'; /* Prevent text selection during drag */
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const containerRect = mainContainer.getBoundingClientRect();
+                let newWidth = e.clientX - containerRect.left;
+                let newWidthPercent = (newWidth / containerRect.width) * 100;
+
+                // Clamp width between 25% and 50%
+                newWidthPercent = Math.max(25, Math.min(50, newWidthPercent));
+
+                column1.style.flexBasis = `${newWidthPercent}%`;
+                // Column 2 automatically adjusts due to flex-1
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                mainContainer.style.cursor = 'default';
+                mainContainer.style.userSelect = 'auto';
+            });
+        });
+    </script>
+</body>
+</html>
