@@ -66,6 +66,38 @@
             padding-top: 0 !important;
             padding-bottom: 0 !important;
         }
+
+        /* Canvas styling to fill container */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px; /* Increased height for better chart visibility */
+        }
+        .tooltip-text {
+            position: absolute;
+            background-color: #2D3748; /* Darker blue-gray */
+            border: 1px solid #4A5568; /* Border to match dashboard */
+            color: #E2E8F0; /* Light text */
+            padding: 8px 12px;
+            border-radius: 8px; /* More rounded */
+            font-size: 0.875rem; /* Slightly larger font */
+            pointer-events: none; /* Allows mouse events to pass through */
+            z-index: 50;
+            white-space: pre-wrap; /* Allows newlines from \n */
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+            transform: translateY(5px); /* Small initial offset for pop effect */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Added shadow */
+        }
+        .tooltip-text.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col bg-gray-900 text-gray-100">
@@ -280,10 +312,10 @@
                 </div>
 
                 <div class="space-y-3">
-                    <!-- ViewSessionAnalyticCard Placeholder -->
+                    <!-- Lap Performance Trend Line Chart -->
                     <div class="bg-gray-700 rounded-md p-2 border border-gray-600">
                         <div class="flex justify-between items-center mb-1">
-                            <h3 class="text-sm font-semibold text-white">Chart Name & Description</h3>
+                            <h3 class="text-sm font-semibold text-white">Lap Performance Trend (Lap Time, Top Speed, Fuel Consumption)</h3>
                             <div class="flex space-x-0.5">
                                 <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Edit Chart" style="font-size: 0.7em;">✏️</button>
                                 <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Delete Chart" style="font-size: 0.7em;">🗑️</button>
@@ -291,13 +323,16 @@
                                 <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Close Chart" style="font-size: 0.7em;">✖️</button>
                             </div>
                         </div>
-                        <div class="bg-gray-800 h-32 flex items-center justify-center text-gray-400 rounded-md text-sm">
-                            Chart Visualization Placeholder
+                        <div class="chart-container">
+                            <canvas id="lapTimeChart"></canvas>
+                            <div id="lapTimeTooltip" class="tooltip-text"></div>
                         </div>
                     </div>
+
+                    <!-- Parameter Comparison Bar Chart -->
                     <div class="bg-gray-700 rounded-md p-2 border border-gray-600">
                         <div class="flex justify-between items-center mb-1">
-                            <h3 class="text-sm font-semibold text-white">Another Analytic Table</h3>
+                            <h3 class="text-sm font-semibold text-white">Parameter Comparison (Lap 1 vs Lap 2)</h3>
                             <div class="flex space-x-0.5">
                                 <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Edit Table" style="font-size: 0.7em;">✏️</button>
                                 <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Delete Table" style="font-size: 0.7em;">🗑️</button>
@@ -305,8 +340,9 @@
                                 <button class="p-0.5 rounded-md text-gray-400 hover:bg-gray-600 hover:text-gray-200" title="Close Table" style="font-size: 0.7em;">✖️</button>
                             </div>
                         </div>
-                        <div class="bg-gray-800 h-24 flex items-center justify-center text-gray-400 rounded-md text-sm">
-                            Analytic Table Placeholder
+                        <div class="chart-container">
+                            <canvas id="paramCompareChart"></canvas>
+                            <div id="paramCompareTooltip" class="tooltip-text"></div>
                         </div>
                     </div>
                 </div>
@@ -347,6 +383,383 @@
                 mainContainer.style.cursor = 'default';
                 mainContainer.style.userSelect = 'auto';
             });
+
+            // --- Chart Drawing Logic ---
+
+            // Helper to get DPI scaling for sharper canvas on high-DPI screens
+            const getDpiScale = () => window.devicePixelRatio || 1;
+
+            // Chart 1: Lap Time Trend Line Chart
+            const lapTimeChartCanvas = document.getElementById('lapTimeChart');
+            const lapTimeCtx = lapTimeChartCanvas.getContext('2d');
+            const lapTimeTooltip = document.getElementById('lapTimeTooltip');
+
+            // More realistic mock data for Lap Time, Top Speed, and Fuel Consumption
+            const lapTimeData = [
+                { lap: 1, time: 90.2, speed: 320, fuel: 100 },
+                { lap: 2, time: 89.8, speed: 322, fuel: 98 },
+                { lap: 3, time: 89.5, speed: 325, fuel: 96 },
+                { lap: 4, time: 90.5, speed: 318, fuel: 94 },
+                { lap: 5, time: 90.1, speed: 321, fuel: 92 },
+                { lap: 6, time: 89.9, speed: 323, fuel: 90 },
+                { lap: 7, time: 89.7, speed: 324, fuel: 88 },
+                { lap: 8, time: 89.6, speed: 326, fuel: 86 },
+                { lap: 9, time: 90.0, speed: 321, fuel: 84 },
+                { lap: 10, time: 90.3, speed: 319, fuel: 82 }
+            ];
+
+            const drawLapTimeChart = () => {
+                const dpi = getDpiScale();
+                const container = lapTimeChartCanvas.parentElement;
+                lapTimeChartCanvas.width = container.clientWidth * dpi;
+                lapTimeChartCanvas.height = container.clientHeight * dpi;
+                lapTimeCtx.scale(dpi, dpi);
+
+                const width = lapTimeChartCanvas.width / dpi;
+                const height = lapTimeChartCanvas.height / dpi;
+
+                lapTimeCtx.clearRect(0, 0, width, height);
+
+                // Chart padding and dimensions
+                const padding = { top: 30, right: 60, bottom: 40, left: 50 };
+                const chartWidth = width - padding.left - padding.right;
+                const chartHeight = height - padding.top - padding.bottom;
+
+                // Value ranges
+                const minLap = Math.min(...lapTimeData.map(d => d.lap));
+                const maxLap = Math.max(...lapTimeData.map(d => d.lap));
+                const minTime = Math.min(...lapTimeData.map(d => d.time));
+                const maxTime = Math.max(...lapTimeData.map(d => d.time));
+                const minSpeed = Math.min(...lapTimeData.map(d => d.speed));
+                const maxSpeed = Math.max(...lapTimeData.map(d => d.speed));
+                const minFuel = Math.min(...lapTimeData.map(d => d.fuel));
+                const maxFuel = Math.max(...lapTimeData.map(d => d.fuel));
+
+                // Helper to map data value to Y position
+                const getYPos = (value, minVal, maxVal) => padding.top + chartHeight - ((value - minVal) / (maxVal - minVal)) * chartHeight;
+
+                // Draw X-axis (Laps)
+                lapTimeCtx.strokeStyle = '#4B5563'; // gray-600
+                lapTimeCtx.lineWidth = 1;
+                lapTimeCtx.beginPath();
+                lapTimeCtx.moveTo(padding.left, height - padding.bottom);
+                lapTimeCtx.lineTo(width - padding.right, height - padding.bottom);
+                lapTimeCtx.stroke();
+
+                // Draw Y-axis (Lap Time - Left)
+                lapTimeCtx.beginPath();
+                lapTimeCtx.moveTo(padding.left, padding.top);
+                lapTimeCtx.lineTo(padding.left, height - padding.bottom);
+                lapTimeCtx.stroke();
+
+                // Draw Y-axis (Top Speed - Right)
+                lapTimeCtx.beginPath();
+                lapTimeCtx.moveTo(width - padding.right, padding.top);
+                lapTimeCtx.lineTo(width - padding.right, height - padding.bottom);
+                lapTimeCtx.stroke();
+
+                // Draw grid lines
+                lapTimeCtx.strokeStyle = '#374151'; // gray-700 for grid
+                lapTimeCtx.setLineDash([2, 2]); // Dashed lines
+                // Horizontal grid lines
+                for (let i = 0; i <= 4; i++) { // 5 lines
+                    const y = padding.top + (chartHeight / 4) * i;
+                    lapTimeCtx.beginPath();
+                    lapTimeCtx.moveTo(padding.left, y);
+                    lapTimeCtx.lineTo(width - padding.right, y);
+                    lapTimeCtx.stroke();
+                }
+                // Vertical grid lines
+                lapTimeCtx.setLineDash([]); // Solid lines for X-axis labels
+                const xStep = chartWidth / (lapTimeData.length - 1);
+                lapTimeCtx.fillStyle = '#9CA3AF'; // gray-400
+                lapTimeCtx.font = '10px Inter';
+                lapTimeCtx.textAlign = 'center';
+                lapTimeCtx.textBaseline = 'middle';
+
+                lapTimeData.forEach((d, i) => {
+                    const x = padding.left + i * xStep;
+                    lapTimeCtx.fillText(`Lap ${d.lap}`, x, height - padding.bottom + 20); // X-axis labels
+                });
+
+                // Y-axis labels (Left - Lap Time)
+                lapTimeCtx.textAlign = 'right';
+                for (let i = 0; i <= 4; i++) {
+                    const val = minTime + (maxTime - minTime) / 4 * i;
+                    const y = getYPos(val, minTime, maxTime);
+                    lapTimeCtx.fillText(val.toFixed(1), padding.left - 10, y);
+                }
+                lapTimeCtx.fillText('Lap Time (s)', padding.left - 40, height / 2, 80); // Y-axis title
+
+                // Y-axis labels (Right - Top Speed)
+                lapTimeCtx.textAlign = 'left';
+                 for (let i = 0; i <= 4; i++) {
+                    const val = minSpeed + (maxSpeed - minSpeed) / 4 * i;
+                    const y = getYPos(val, minSpeed, maxSpeed);
+                    lapTimeCtx.fillText(val.toFixed(0), width - padding.right + 10, y);
+                }
+                lapTimeCtx.fillText('Top Speed (km/h)', width - padding.right + 30, height / 2, 80); // Y-axis title
+
+
+                // Draw lines and points
+                const drawLine = (data, valueKey, color, yAxisRangeMin, yAxisRangeMax) => {
+                    lapTimeCtx.strokeStyle = color;
+                    lapTimeCtx.lineWidth = 2;
+                    lapTimeCtx.beginPath();
+                    data.forEach((d, i) => {
+                        const x = padding.left + i * xStep;
+                        const y = getYPos(d[valueKey], yAxisRangeMin, yAxisRangeMax);
+                        if (i === 0) lapTimeCtx.moveTo(x, y);
+                        else lapTimeCtx.lineTo(x, y);
+                    });
+                    lapTimeCtx.stroke();
+
+                    // Draw points
+                    data.forEach((d, i) => {
+                        const x = padding.left + i * xStep;
+                        const y = getYPos(d[valueKey], yAxisRangeMin, yAxisRangeMax);
+                        lapTimeCtx.fillStyle = color;
+                        lapTimeCtx.beginPath();
+                        lapTimeCtx.arc(x, y, 4, 0, Math.PI * 2);
+                        lapTimeCtx.fill();
+                    });
+                };
+
+                drawLine(lapTimeData, 'time', '#81C784', minTime, maxTime); // Green for Lap Time
+                drawLine(lapTimeData, 'speed', '#64B5F6', minSpeed, maxSpeed); // Blue for Top Speed
+                drawLine(lapTimeData, 'fuel', '#FFD700', minFuel, maxFuel); // Gold for Fuel Consumption
+
+                // Legend
+                lapTimeCtx.font = '10px Inter';
+                lapTimeCtx.textAlign = 'left';
+                const legendX = padding.left + 5;
+                const legendY = 10;
+                lapTimeCtx.fillStyle = '#81C784'; lapTimeCtx.fillRect(legendX, legendY, 10, 2); lapTimeCtx.fillText('Lap Time', legendX + 15, legendY + 1);
+                lapTimeCtx.fillStyle = '#64B5F6'; lapTimeCtx.fillRect(legendX + 70, legendY, 10, 2); lapTimeCtx.fillText('Top Speed', legendX + 85, legendY + 1);
+                lapTimeCtx.fillStyle = '#FFD700'; lapTimeCtx.fillRect(legendX + 150, legendY, 10, 2); lapTimeCtx.fillText('Fuel (L)', legendX + 165, legendY + 1);
+            };
+
+            // Lap Time Chart Interactivity
+            lapTimeChartCanvas.addEventListener('mousemove', (e) => {
+                const rect = lapTimeChartCanvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) * getDpiScale() / lapTimeChartCanvas.width * (lapTimeChartCanvas.width / getDpiScale());
+                const y = (e.clientY - rect.top) * getDpiScale() / lapTimeChartCanvas.height * (lapTimeChartCanvas.height / getDpiScale());
+
+                const padding = { top: 30, right: 60, bottom: 40, left: 50 };
+                const chartWidth = lapTimeChartCanvas.width / getDpiScale() - padding.left - padding.right;
+                const xStep = chartWidth / (lapTimeData.length - 1);
+
+                let closestPoint = null;
+                let minDist = Infinity;
+
+                lapTimeData.forEach((d, i) => {
+                    const pointX = padding.left + i * xStep;
+                    const dist = Math.abs(x - pointX);
+
+                    // Check if mouse is within a reasonable horizontal distance of a point
+                    if (dist < minDist && dist < 15) {
+                        closestPoint = d;
+                        minDist = dist;
+                    }
+                });
+
+                if (closestPoint) {
+                    lapTimeTooltip.classList.add('visible');
+                    // Position tooltip relative to the canvas container
+                    lapTimeTooltip.style.left = `${e.clientX - rect.left + 15}px`;
+                    lapTimeTooltip.style.top = `${e.clientY - rect.top + 15}px`;
+                    lapTimeTooltip.innerHTML = `
+                        <span style="font-weight: bold; color: #64B5F6;">Lap: ${closestPoint.lap}</span>\n
+                        Lap Time: <span style="color: #81C784;">${closestPoint.time.toFixed(2)}s</span>\n
+                        Top Speed: <span style="color: #64B5F6;">${closestPoint.speed.toFixed(0)} km/h</span>\n
+                        Fuel: <span style="color: #FFD700;">${closestPoint.fuel.toFixed(1)} L</span>
+                    `;
+                } else {
+                    lapTimeTooltip.classList.remove('visible');
+                }
+            });
+
+            lapTimeChartCanvas.addEventListener('mouseout', () => {
+                lapTimeTooltip.classList.remove('visible');
+            });
+
+
+            // Chart 2: Parameter Comparison Bar Chart
+            const paramCompareChartCanvas = document.getElementById('paramCompareChart');
+            const paramCompareCtx = paramCompareChartCanvas.getContext('2d');
+            const paramCompareTooltip = document.getElementById('paramCompareTooltip');
+
+            // More realistic mock data for parameter comparison (Lap 1 vs Lap 2)
+            const paramData = [
+                { parameter: 'Acceleration (0-100)', unit: 's', lap1: 2.8, lap2: 2.7, ideal: 2.6 },
+                { parameter: 'Braking G-Force', unit: 'g', lap1: 1.8, lap2: 1.9, ideal: 2.0 },
+                { parameter: 'Cornering Speed (Avg)', unit: 'km/h', lap1: 180, lap2: 185, ideal: 190 },
+                { parameter: 'Downforce (Front)', unit: 'N', lap1: 1200, lap2: 1250, ideal: 1300 },
+                { parameter: 'Tire Temp (Avg)', unit: '°C', lap1: 95, lap2: 98, ideal: 90 },
+            ];
+
+            const drawParamCompareChart = () => {
+                const dpi = getDpiScale();
+                const container = paramCompareChartCanvas.parentElement;
+                paramCompareChartCanvas.width = container.clientWidth * dpi;
+                paramCompareChartCanvas.height = container.clientHeight * dpi;
+                paramCompareCtx.scale(dpi, dpi);
+
+                const width = paramCompareChartCanvas.width / dpi;
+                const height = paramCompareChartCanvas.height / dpi;
+
+                paramCompareCtx.clearRect(0, 0, width, height);
+
+                const padding = { top: 30, right: 30, bottom: 80, left: 80 }; // Increased bottom padding for labels
+                const chartWidth = width - padding.left - padding.right;
+                const chartHeight = height - padding.top - padding.bottom;
+
+                // Determine max value dynamically for scaling
+                const allValues = paramData.flatMap(d => [d.lap1, d.lap2, d.ideal]);
+                const maxValue = Math.max(...allValues);
+                const normalizedMaxValue = maxValue * 1.1; // Add 10% buffer
+
+                // Draw Y-axis
+                paramCompareCtx.strokeStyle = '#4B5563';
+                paramCompareCtx.lineWidth = 1;
+                paramCompareCtx.beginPath();
+                paramCompareCtx.moveTo(padding.left, padding.top);
+                paramCompareCtx.lineTo(padding.left, height - padding.bottom);
+                paramCompareCtx.stroke();
+
+                // Draw X-axis
+                paramCompareCtx.beginPath();
+                paramCompareCtx.moveTo(padding.left, height - padding.bottom);
+                paramCompareCtx.lineTo(width - padding.right, height - padding.bottom);
+                paramCompareCtx.stroke();
+
+                // Draw grid lines
+                paramCompareCtx.strokeStyle = '#374151';
+                paramCompareCtx.setLineDash([2, 2]);
+                const numYGridLines = 4;
+                for (let i = 0; i <= numYGridLines; i++) {
+                    const y = padding.top + (chartHeight / numYGridLines) * i;
+                    paramCompareCtx.beginPath();
+                    paramCompareCtx.moveTo(padding.left, y);
+                    paramCompareCtx.lineTo(width - padding.right, y);
+                    paramCompareCtx.stroke();
+                }
+                paramCompareCtx.setLineDash([]);
+
+                const numGroups = paramData.length;
+                const groupWidth = chartWidth / numGroups;
+                const barGap = 5; // Gap between bars within a group
+                const barActualWidth = (groupWidth - barGap * 2) / 2; // Two bars per group
+
+                paramCompareCtx.font = '10px Inter';
+                paramCompareCtx.textAlign = 'center';
+                paramCompareCtx.textBaseline = 'middle';
+                paramCompareCtx.fillStyle = '#9CA3AF'; // Axis labels
+
+                paramData.forEach((d, i) => {
+                    const groupCenterX = padding.left + i * groupWidth + groupWidth / 2;
+
+                    // Parameter Name label
+                    paramCompareCtx.save();
+                    paramCompareCtx.translate(groupCenterX, height - padding.bottom + 10);
+                    paramCompareCtx.rotate(Math.PI / 6); // Rotate for better readability
+                    paramCompareCtx.textAlign = 'left';
+                    paramCompareCtx.fillText(`${d.parameter} (${d.unit})`, 0, 0);
+                    paramCompareCtx.restore();
+
+                    // Bar for Lap 1
+                    const lap1Height = (d.lap1 / normalizedMaxValue) * chartHeight;
+                    const lap1X = groupCenterX - barActualWidth - barGap / 2;
+                    paramCompareCtx.fillStyle = '#64B5F6'; // Blue for Lap 1
+                    paramCompareCtx.fillRect(lap1X, height - padding.bottom - lap1Height, barActualWidth, lap1Height);
+                    // Store bar region for interactivity
+                    d.lap1Bar = { x: lap1X, y: height - padding.bottom - lap1Height, width: barActualWidth, height: lap1Height };
+
+
+                    // Bar for Lap 2
+                    const lap2Height = (d.lap2 / normalizedMaxValue) * chartHeight;
+                    const lap2X = groupCenterX + barGap / 2;
+                    paramCompareCtx.fillStyle = '#FBC02D'; // Amber for Lap 2
+                    paramCompareCtx.fillRect(lap2X, height - padding.bottom - lap2Height, barActualWidth, lap2Height);
+                    // Store bar region for interactivity
+                    d.lap2Bar = { x: lap2X, y: height - padding.bottom - lap2Height, width: barActualWidth, height: lap2Height };
+                });
+
+                // Y-axis labels
+                paramCompareCtx.textAlign = 'right';
+                paramCompareCtx.textBaseline = 'middle';
+                for (let i = 0; i <= numYGridLines; i++) {
+                    const val = normalizedMaxValue / numYGridLines * i;
+                    const y = getYPos(val, 0, normalizedMaxValue); // Use same getYPos function
+                    paramCompareCtx.fillText(val.toFixed(1), padding.left - 10, y);
+                }
+
+                // Y-axis title
+                paramCompareCtx.save();
+                paramCompareCtx.translate(padding.left - 60, height / 2);
+                paramCompareCtx.rotate(-Math.PI / 2);
+                paramCompareCtx.textAlign = 'center';
+                paramCompareCtx.fillText('Value', 0, 0);
+                paramCompareCtx.restore();
+
+                // Legend
+                paramCompareCtx.font = '10px Inter';
+                paramCompareCtx.textAlign = 'left';
+                const legendX = padding.left;
+                const legendY = 10;
+                paramCompareCtx.fillStyle = '#64B5F6'; paramCompareCtx.fillRect(legendX, legendY, 10, 2); paramCompareCtx.fillText('Lap 1', legendX + 15, legendY + 1);
+                paramCompareCtx.fillStyle = '#FBC02D'; paramCompareCtx.fillRect(legendX + 60, legendY, 10, 2); paramCompareCtx.fillText('Lap 2', legendX + 75, legendY + 1);
+            };
+
+            // Parameter Compare Chart Interactivity
+            paramCompareChartCanvas.addEventListener('mousemove', (e) => {
+                const rect = paramCompareChartCanvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) * getDpiScale() / paramCompareChartCanvas.width * (paramCompareChartCanvas.width / getDpiScale());
+                const y = (e.clientY - rect.top) * getDpiScale() / paramCompareChartCanvas.height * (paramCompareChartCanvas.height / getDpiScale());
+
+                let hoveredBarData = null;
+
+                paramData.forEach((d) => {
+                    if (d.lap1Bar && x >= d.lap1Bar.x && x <= d.lap1Bar.x + d.lap1Bar.width && y >= d.lap1Bar.y && y <= d.lap1Bar.y + d.lap1Bar.height) {
+                        hoveredBarData = { ...d, type: 'Lap 1', value: d.lap1 };
+                    } else if (d.lap2Bar && x >= d.lap2Bar.x && x <= d.lap2Bar.x + d.lap2Bar.width && y >= d.lap2Bar.y && y <= d.lap2Bar.y + d.lap2Bar.height) {
+                        hoveredBarData = { ...d, type: 'Lap 2', value: d.lap2 };
+                    }
+                });
+
+                if (hoveredBarData) {
+                    paramCompareTooltip.classList.add('visible');
+                    paramCompareTooltip.style.left = `${e.clientX - rect.left + 15}px`;
+                    paramCompareTooltip.style.top = `${e.clientY - rect.top + 15}px`;
+                    paramCompareTooltip.innerHTML = `
+                        <span style="font-weight: bold; color: #64B5F6;">${hoveredBarData.parameter}</span>\n
+                        ${hoveredBarData.type}: <span style="color: ${hoveredBarData.type === 'Lap 1' ? '#64B5F6' : '#FBC02D'};">${hoveredBarData.value.toFixed(1)} ${hoveredBarData.unit}</span>\n
+                        Ideal: ${hoveredBarData.ideal.toFixed(1)} ${hoveredBarData.unit}
+                    `;
+                } else {
+                    paramCompareTooltip.classList.remove('visible');
+                }
+            });
+
+            paramCompareChartCanvas.addEventListener('mouseout', () => {
+                paramCompareTooltip.classList.remove('visible');
+            });
+
+
+            // Initial draw and redraw on resize
+            const setupCharts = () => {
+                drawLapTimeChart();
+                drawParamCompareChart();
+            };
+
+            // Debounce resize to prevent excessive redraws
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(setupCharts, 100);
+            });
+
+            setupCharts(); // Initial setup
         });
     </script>
 </body>
